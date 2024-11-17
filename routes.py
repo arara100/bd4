@@ -37,10 +37,22 @@ def get_users():
     users = User.query.all()
     return jsonify([{"id": user.id, "username": user.username, "email": user.email} for user in users])
 
+
 @app.route('/songs', methods=['GET'])
-def get_songs():
-    songs = Song.query.all()
-    return jsonify([{"id": song.id, "title": song.title, "price": str(song.price), "release_date": song.release_date} for song in songs])
+def get_all_songs_with_fans():
+    songs = Song.query.all()  # Отримуємо всі пісні
+
+    # Формуємо відповідь, де кожна пісня містить список фанів
+    result = []
+    for song in songs:
+        result.append({
+            'id': song.id,
+            'title': song.title,
+            'fans': [{'id': user.id, 'username': user.username} for user in song.fans]
+        })
+
+    return jsonify(result), 200
+
 
 @app.route('/downloads', methods=['GET'])
 def get_downloads():
@@ -146,6 +158,12 @@ def add_favorite_song(user_id):
 def get_favorite_songs(user_id):
     user = User.query.get_or_404(user_id)
     return jsonify([{'id': s.id, 'title': s.title} for s in user.favorite_songs])
+
+@app.route('/songs/<int:song_id>/favorites', methods=['GET'])
+def get_favorite_users(song_id):
+    song = Song.query.get_or_404(song_id)
+    return jsonify([{'id': user.id, 'username': user.username} for user in song.fans])
+
 
 @app.route('/users/<int:user_id>/favorites/<int:song_id>', methods=['DELETE'])
 def remove_favorite_song(user_id, song_id):
