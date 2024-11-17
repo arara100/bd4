@@ -1,6 +1,10 @@
 # models.py
 from app import db
 
+favorites = db.Table('favorites',
+    db.Column('user_id', db.Integer, db.ForeignKey('User.id'), primary_key=True),
+    db.Column('song_id', db.Integer, db.ForeignKey('Song.id'), primary_key=True)
+)
 
 class User(db.Model):
     __tablename__ = 'User'
@@ -9,7 +13,7 @@ class User(db.Model):
     email = db.Column(db.String(100), unique=True, nullable=False)
 
     downloads = db.relationship('Download', back_populates='user')
-
+    favorite_songs = db.relationship('Song', secondary=favorites, back_populates='fans')
 
 class Song(db.Model):
     __tablename__ = 'Song'
@@ -19,6 +23,7 @@ class Song(db.Model):
     release_date = db.Column(db.Date)
 
     downloads = db.relationship('Download', back_populates='song')
+    fans = db.relationship('User', secondary=favorites, back_populates='favorite_songs')
 
 class Download(db.Model):
     __tablename__ = 'Download'
@@ -29,3 +34,4 @@ class Download(db.Model):
 
     user = db.relationship('User', back_populates='downloads')
     song = db.relationship('Song', back_populates='downloads')
+

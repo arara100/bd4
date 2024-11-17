@@ -133,3 +133,73 @@ def delete_download(download_id):
     else:
         return jsonify({"message": "Download not found"}), 404
 
+@app.route('/users/<int:user_id>/favorites', methods=['POST'])
+def add_favorite_song(user_id):
+    data = request.get_json()
+    user = User.query.get_or_404(user_id)
+    song = Song.query.get_or_404(data['song_id'])
+    user.favorite_songs.append(song)
+    db.session.commit()
+    return jsonify({'message': 'Song added to favorites'})
+
+@app.route('/users/<int:user_id>/favorites', methods=['GET'])
+def get_favorite_songs(user_id):
+    user = User.query.get_or_404(user_id)
+    return jsonify([{'id': s.id, 'title': s.title} for s in user.favorite_songs])
+
+@app.route('/users/<int:user_id>/favorites/<int:song_id>', methods=['DELETE'])
+def remove_favorite_song(user_id, song_id):
+    user = User.query.get_or_404(user_id)
+    song = Song.query.get_or_404(song_id)
+    user.favorite_songs.remove(song)
+    db.session.commit()
+    return jsonify({'message': 'Song removed from favorites'})
+
+
+@app.route('/users/<int:user_id>/favorites/multiple', methods=['POST'])
+def add_multiple_favorites_to_user(user_id):
+    data = request.get_json()
+    user = User.query.get_or_404(user_id)
+
+    song_ids = data.get('song_ids', [])
+    if not song_ids:
+        return jsonify({'message': 'No song IDs provided'}), 400
+
+    # Отримуємо пісні за їхніми ID
+    songs = Song.query.filter(Song.id.in_(song_ids)).all()
+
+    # Додаємо пісні до улюблених
+    user.favorite_songs.extend([song for song in songs if song not in user.favorite_songs])
+    db.session.commit()
+
+    return jsonify({
+        'message': 'Songs added to favorites',
+        'user': {'id': user.id, 'username': user.username},
+        'songs': [{'id': song.id, 'title': song.title} for song in user.favorite_songs]
+    }), 200
+
+
+@app.route('/songs/<int:song_id>/fans/multiple', methods=['POST'])
+def add_multiple_users_to_song(song_id):
+    data = request.get_json()
+    song = Song.query.get_or_404(song_id)
+
+    user_ids = data.get('user_ids', [])
+    if not user_ids:
+        return jsonify({'message': 'No user IDs provided'}), 400
+
+    # Отримуємо користувачів за їхніми ID
+    users = User.query.filter(User.id.in_(user_ids)).all()
+
+    # Додаємо користувачів до фанів пісні
+    song.fans.extend([user for user in users if user not in song.fans])
+    db.session.commit()
+
+    return jsonify({
+        'message': 'Users added as fans',
+        'song': {'id': song.id, 'title': song.title},
+        'users': [{'id': user.id, 'username': user.username} for user in song.fans]
+    }), 200
+
+
+
